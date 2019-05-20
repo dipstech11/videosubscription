@@ -1,13 +1,8 @@
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <title></title>
-  </head>
-  <body>
+{% extends 'courses/base.html' %}
+
+{% block content %}
     <h2>Course List</h2>
     {% for course in object_list %}
         <a href="{{ course.get_absolute_url }}"> {{ course }}</a>
     {% endfor %}
-  </body>
-</html>
+{% endblock %}
