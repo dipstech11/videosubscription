@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import ListView
 from django.http import HttpResponseRedirect
 from django.conf import settings
@@ -81,17 +81,22 @@ def PaymentView(request):
     if request.method == "POST":
         try:
             token = request.POST['stripeToken']
-            stripe.Subscription.create(
+            subscription = stripe.Subscription.create(
                 customer= user_membership.stripe_customer_id,
                 items= [
                 {
                 "plan":selected_membership.stripe_plan_id,
                 },
-                
+
                 ],source=token
             )
 
-        except stripe.CardError as e:
+            return redirect(reverse("memberships:update-transactions",
+            kwargs={
+            "subscription_id":subscription.id
+            }))
+
+        except:
             messages.info(request,"Your card has been declined")
 
 
@@ -100,3 +105,25 @@ def PaymentView(request):
     'selected_membership':selected_membership
     }
     return render(request, "memberships/membership_payment.html", context)
+
+
+def UpdateTransaction(request, subscription_id):
+    user_membership = get_user_membership(request)
+    selected_membership = get_selected_membership(request)
+
+    user_membership.membership = selected_membership
+    user_membership.save()
+
+    sub, created = Subscription.get_or_create(user_membership=user_membership)
+    sub.stripe_subscription_id = subscription_id
+    sub.active = True
+    sub.save()
+
+    try:
+        del request.session['selected_membership_type']
+
+    except:
+        pass
+
+    messages.info(request, "Successfully created {} membership".format(selected_membership))
+    return redirect("/courses")
